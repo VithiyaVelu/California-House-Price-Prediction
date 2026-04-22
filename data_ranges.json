@@ -1,0 +1,54 @@
+{
+  "MedInc": {
+    "min": 0.4999,
+    "max": 15.0001
+  },
+  "HouseAge": {
+    "min": 1.0,
+    "max": 52.0
+  },
+  "AveRooms": {
+    "min": 0.8461538461538461,
+    "max": 141.9090909090909
+  },
+  "AveBedrms": {
+    "min": 0.3333333333333333,
+    "max": 34.06666666666667
+  },
+  "Population": {
+    "min": 3.0,
+    "max": 35682.0
+  },
+  "AveOccup": {
+    "min": 0.6923076923076923,
+    "max": 1243.3333333333333
+  },
+  "Latitude": {
+    "min": 32.54,
+    "max": 41.95
+  },
+  "Longitude": {
+    "min": -124.35,
+    "max": -114.31
+  },
+  "rooms_per_person": {
+    "min": 0.002546916890080429,
+    "max": 55.22222222222222
+  },
+  "bedrooms_per_room": {
+    "min": 0.1,
+    "max": 1.0
+  },
+  "population_per_household": {
+    "min": 0.15384615384615385,
+    "max": 5435.0
+  },
+  "population_per_room": {
+    "min": 0.2114029468289558,
+    "max": 6770.139566341754
+  },
+  "medinc_houseage_interaction": {
+    "min": 1.625,
+    "max": 780.0052
+  }
+}
