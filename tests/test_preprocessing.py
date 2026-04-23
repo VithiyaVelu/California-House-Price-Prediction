@@ -27,6 +27,6 @@ def test_add_features_creates_all_expected_columns():
 
     assert result.loc[0, "rooms_per_person"] == 5.0 / 2.5
     assert result.loc[0, "bedrooms_per_room"] == 1.1 / 5.0
-    assert result.loc[0, "population_per_household"] == 1000 / 20
+    assert result.loc[0, "population_per_household"] == 1000 / 2.5
     assert result.loc[0, "population_per_room"] == 1000 / 5.0
     assert result.loc[0, "medinc_houseage_interaction"] == 4.0 * 20

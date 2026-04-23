@@ -76,10 +76,13 @@ def predict_batch(model, batch_df: pd.DataFrame) -> pd.DataFrame:
     rmse = float(metrics.get("RMSE", 0.5))
     rmse_dollars = rmse * 100000
 
+    # Approximate 95% prediction interval using 1.96 * RMSE
+    interval_width = 1.96 * rmse_dollars
+
     result_df = batch_df.copy()
     result_df["Predicted Price"] = predicted_prices
-    result_df["Confidence Lower"] = np.maximum(predicted_prices - rmse_dollars, 0.0)
-    result_df["Confidence Upper"] = predicted_prices + rmse_dollars
+    result_df["Confidence Lower"] = np.maximum(predicted_prices - interval_width, 0.0)
+    result_df["Confidence Upper"] = predicted_prices + interval_width
     result_df["RMSE"] = rmse_dollars
     return result_df
 
@@ -93,10 +96,13 @@ def make_prediction(model, request: PredictionRequest) -> PredictionResponse:
     rmse = float(metrics.get("RMSE", 0.5))
     rmse_dollars = rmse * 100000
 
+    # Approximate 95% prediction interval using 1.96 * RMSE
+    interval_width = 1.96 * rmse_dollars
+
     return PredictionResponse(
         predicted_price=predicted_price,
-        confidence_lower=max(0.0, predicted_price - rmse_dollars),
-        confidence_upper=predicted_price + rmse_dollars,
+        confidence_lower=max(0.0, predicted_price - interval_width),
+        confidence_upper=predicted_price + interval_width,
         rmse=rmse_dollars,
     )
 
