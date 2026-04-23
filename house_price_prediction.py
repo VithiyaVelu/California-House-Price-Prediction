@@ -18,12 +18,19 @@ from sklearn.datasets import fetch_california_housing
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def load_housing_data() -> pd.DataFrame:
     dataset = fetch_california_housing(as_frame=True)
     df = dataset.frame.copy()
     df["MedHouseVal"] = dataset.target
+    
+    # Remove outliers that hurt model accuracy
+    df = df[df["AveRooms"] < 20]
+    df = df[df["AveOccup"] < 10]
+    
     return df
 
 
@@ -57,8 +64,9 @@ def plot_feature_correlations(df: pd.DataFrame, output_path: Path) -> None:
     plt.close()
 
 
-def plot_feature_importance(model: GradientBoostingRegressor, feature_names: list[str], output_path: Path) -> None:
-    importances = model.feature_importances_
+def plot_feature_importance(model, feature_names: list[str], output_path: Path) -> None:
+    # Access the regressor from the pipeline to get feature importances
+    importances = model.named_steps['regressor'].feature_importances_
     feature_importance = pd.Series(importances, index=feature_names).sort_values(ascending=False)
     plt.figure(figsize=(10, 6))
     sns.barplot(x=feature_importance.values, y=feature_importance.index, palette="viridis")
@@ -77,15 +85,19 @@ def prepare_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
 
 
 def train_model(X_train: pd.DataFrame, y_train: pd.Series) -> GridSearchCV:
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('regressor', GradientBoostingRegressor(random_state=42))
+    ])
+    
     param_grid = {
-        "n_estimators": [150, 250],
-        "max_depth": [3, 4, 5],
-        "learning_rate": [0.05, 0.08, 0.1],
-        "subsample": [0.8, 1.0],
+        "regressor__n_estimators": [150, 250],
+        "regressor__max_depth": [3, 4, 5],
+        "regressor__learning_rate": [0.05, 0.08, 0.1],
+        "regressor__subsample": [0.8, 1.0],
     }
-    model = GradientBoostingRegressor(random_state=42)
     search = GridSearchCV(
-        model,
+        pipeline,
         param_grid,
         cv=5,
         scoring="r2",
@@ -96,7 +108,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series) -> GridSearchCV:
     return search
 
 
-def evaluate_model(model: GradientBoostingRegressor, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
+def evaluate_model(model, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
     predictions = model.predict(X_test)
     return {
         "MAE": mean_absolute_error(y_test, predictions),
@@ -115,6 +127,11 @@ def save_data_ranges(df: pd.DataFrame, output_path: Path) -> None:
         json.dump(ranges, f, indent=2)
 
 
+def save_metrics(metrics: dict, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+
 
 def main() -> None:
     df = load_housing_data()
@@ -130,22 +147,40 @@ def main() -> None:
     print("Saved data ranges to data_ranges.json")
 
     X, y = prepare_features(df)
-    X_train, X_test, y_train, y_test = train_test_split(
+    # First split: separate test set (20%)
+    X_temp, X_test, y_temp, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
-    print(f"Train size: {X_train.shape[0]}, Test size: {X_test.shape[0]}")
+    # Second split: separate validation set (20% of remaining = 16% of total)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_temp, y_temp, test_size=0.2, random_state=42
+    )
+    print(f"Train size: {X_train.shape[0]}, Validation size: {X_val.shape[0]}, Test size: {X_test.shape[0]}")
 
     search = train_model(X_train, y_train)
     best_model = search.best_estimator_
     print(f"Best parameters: {search.best_params_}")
     print(f"Best CV R2: {search.best_score_:.4f}")
 
+    # Validation set performance
+    val_metrics = evaluate_model(best_model, X_val, y_val)
+    print("\nModel performance on VALIDATION set:")
+    for name, value in val_metrics.items():
+        print(f"  {name}: {value:.4f}")
+
+    # Test set performance
     metrics = evaluate_model(best_model, X_test, y_test)
-    print("\nModel performance on test set:")
+    print("\nModel performance on TEST set:")
     for name, value in metrics.items():
         print(f"  {name}: {value:.4f}")
 
-    save_metrics(metrics, Path("model_metrics.json"))
+    print(f"\nBest CV R2 (from GridSearchCV): {search.best_score_:.4f}")
+
+    save_metrics({
+        "test": metrics,
+        "validation": val_metrics,
+        "best_cv_r2": round(search.best_score_, 4)
+    }, Path("model_metrics.json"))
     print("Saved metrics to model_metrics.json")
 
     feature_names = X.columns.tolist()
