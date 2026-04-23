@@ -139,10 +139,16 @@ docker run -p 8501:8501 house-price-prediction
 
 ## 📈 Model Performance
 
+
 Current model metrics (after training):
-- **MAE**: Mean Absolute Error
-- **RMSE**: Root Mean Squared Error
-- **R² Score**: Coefficient of Determination
+
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| **R² Score** | 0.8107 | Model explains 81% of price variance |
+| **MAE** | $33,558 | Average prediction error |
+| **RMSE** | $49,807 | Root mean squared error |
+
+> Model: Gradient Boosting Regressor (GridSearchCV tuned)
 
 ## 🤝 Contributing
 
